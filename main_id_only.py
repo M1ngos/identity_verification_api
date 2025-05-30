@@ -14,7 +14,7 @@ import logging
 import time
 import json
 from datetime import datetime
-import re  # Add at the top with other imports
+import re
 
 # Configure logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
@@ -189,7 +189,6 @@ async def startup_event():
         logger.error(f"Error loading YOLO model: {str(e)}")
         raise
 
-
 @app.post("/process-frame/", response_model=ProcessFrameResponse)
 async def process_frame(file: UploadFile = File(...)):
     global state
@@ -347,7 +346,6 @@ async def process_frame(file: UploadFile = File(...)):
 
     return ProcessFrameResponse(**response_data)
 
-
 @app.post("/reset-extraction/")
 async def reset_extraction(request: ResetExtractionRequest = None):
     global state
@@ -356,7 +354,6 @@ async def reset_extraction(request: ResetExtractionRequest = None):
         state.session_id = request.session_id
 
     return {"message": "Extraction state reset", "session_id": state.session_id}
-
 
 @app.get("/extraction-status/")
 async def get_extraction_status():
@@ -375,15 +372,10 @@ async def get_extraction_status():
         "elapsed_time": time.time() - state.extraction_start_time
     }
 
-# app.post("/auth/login", response_model=LoginResponse)(login)
-
-
-
 @app.get("/health")
 async def health_check():
     """Health check endpoint"""
     return {"status": "healthy"}
-
 
 if __name__ == "__main__":
     # Run the server
