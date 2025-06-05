@@ -1,37 +1,20 @@
 import os
+from pathlib import Path
 import cv2
 import numpy as np
-from fastapi import FastAPI, File, UploadFile, HTTPException
-from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
-import uvicorn
+from fastapi import File, UploadFile, HTTPException, APIRouter
 import base64
 from pydantic import BaseModel
 from typing import Dict, Optional, List
 from ultralytics import YOLO
 from paddleocr import PaddleOCR
-import logging
 import time
 import json
 from datetime import datetime
 import re
+from app.middleware.logging import logger
 
-# Configure logging
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-logger = logging.getLogger(__name__)
-
-# Initialize FastAPI app
-app = FastAPI(title="ID Card Extraction API",
-              description="API for extracting data from ID cards using webcam frames")
-
-# Add CORS middleware
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
+router = APIRouter()
 
 # Function to get the correct path based on environment (normal or packaged)
 def get_model_path(relative_path):
@@ -44,9 +27,9 @@ def get_model_path(relative_path):
     return os.path.join(base_path, relative_path)
 
 # Paths to the local models
-det_model_dir = get_model_path('./models/det/en_PP-OCRv3_det_infer')
-rec_model_dir = get_model_path('./models/rec/latin_PP-OCRv3_rec_infer')
-cls_model_dir = get_model_path('./models/cls/ch_ppocr_mobile_v2.0_cls_infer')
+det_model_dir = get_model_path('../../models/det/en_PP-OCRv3_det_infer')
+rec_model_dir = get_model_path('../../models/rec/latin_PP-OCRv3_rec_infer')
+cls_model_dir = get_model_path('../../models/cls/ch_ppocr_mobile_v2.0_cls_infer')
 
 # State tracking
 class ExtractionState:
@@ -129,13 +112,11 @@ class ExtractionState:
 
         return filename
 
-
 # Global variables
 state = ExtractionState()
 REQUIRED_FIELDS = ["id_number", "name", "photo"]
 CONFIDENCE_THRESHOLD = 0.6
 PHOTO_SAVE_INTERVAL = 2  # seconds
-
 
 # Pydantic models for request and response
 class ExtractedField(BaseModel):
@@ -150,13 +131,11 @@ class ProcessFrameResponse(BaseModel):
     missing_fields: List[str]
     photo_base64: Optional[str] = None
 
-
 class ResetExtractionRequest(BaseModel):
     session_id: Optional[str] = None
 
-
 # Load models at startup
-@app.on_event("startup")
+@router.on_event("startup")
 async def startup_event():
     global ocr, model
 
@@ -182,14 +161,16 @@ async def startup_event():
     # Load YOLO model
     logger.info("Loading YOLO model...")
     try:
-        model_path = os.path.join('.', 'models', 'det', 'best_recent.pt')
-        model = YOLO(model_path)
+        current_file = Path(__file__).resolve()
+        app_dir = current_file.parent.parent.parent
+        model_path = app_dir / "models" / "det" / "best_recent.pt"
+        model = YOLO(str(model_path))
         logger.info(f"YOLO model loaded from {model_path}")
     except Exception as e:
         logger.error(f"Error loading YOLO model: {str(e)}")
         raise
 
-@app.post("/process-frame/", response_model=ProcessFrameResponse)
+@router.post("/process-frame/", response_model=ProcessFrameResponse)
 async def process_frame(file: UploadFile = File(...)):
     global state
 
@@ -253,7 +234,7 @@ async def process_frame(file: UploadFile = File(...)):
 
                 # Extract text
                 if result and result[0]:
-                    # Get the text with highest confidence
+                    # Get the text with the highest confidence
                     best_text = ""
                     best_conf = 0
                     for line in result[0]:
@@ -346,7 +327,7 @@ async def process_frame(file: UploadFile = File(...)):
 
     return ProcessFrameResponse(**response_data)
 
-@app.post("/reset-extraction/")
+@router.post("/reset-extraction/")
 async def reset_extraction(request: ResetExtractionRequest = None):
     global state
     state.reset()
@@ -355,7 +336,7 @@ async def reset_extraction(request: ResetExtractionRequest = None):
 
     return {"message": "Extraction state reset", "session_id": state.session_id}
 
-@app.get("/extraction-status/")
+@router.get("/extraction-status/")
 async def get_extraction_status():
     global state
 
@@ -371,12 +352,3 @@ async def get_extraction_status():
         "extracted_fields": list(state.extracted_data.keys()),
         "elapsed_time": time.time() - state.extraction_start_time
     }
-
-@app.get("/health")
-async def health_check():
-    """Health check endpoint"""
-    return {"status": "healthy"}
-
-if __name__ == "__main__":
-    # Run the server
-    uvicorn.run("main_id_only:app", host="0.0.0.0", port=8081, reload=True)

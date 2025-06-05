@@ -2,3 +2,4 @@
 /extraction_photos/
 
 /.venv/
+.env
