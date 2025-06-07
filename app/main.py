@@ -7,19 +7,19 @@
 # explicitly authorized by ITS.
 
 import logging
-
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.api.enpoints.idscanner import router as id_scanner_router
 from app.api.enpoints.comparison import router as image_comparison_router
+from app.api.enpoints.liveness import router as liveness_router
 
 # Initialize FastAPI app
 app = FastAPI(
     title="Liveness | ID Card Extraction API",
     description="API for extracting data from ID cards,"
-          " checking liveness"
-          " and comparing faces"
-          " using webcam frames",
+                " checking liveness"
+                " and comparing faces"
+                " using webcam frames",
     version="0.1.2"
 )
 
@@ -32,19 +32,23 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+
 @app.get("/health")
 async def health_check():
     return {"status": "healthy"}
 
+
 # routes/endpoints
 app.include_router(id_scanner_router, prefix="/id")
 app.include_router(image_comparison_router, prefix="/image")
-# app.include_router(liveness_router, prefix="/image")
+app.include_router(liveness_router, prefix="/image")
+
 
 # Events
 @app.on_event("startup")
 async def startup_event():
     logging.info("Starting Liveness and IDScanner Server")
+
 
 @app.on_event("shutdown")
 async def shutdown_event():

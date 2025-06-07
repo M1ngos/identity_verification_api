@@ -6,20 +6,22 @@
 # modification, or distribution of this software is strictly prohibited unless
 # explicitly authorized by ITS.
 
+import base64
+import json
 import os
+import re
+import time
+from datetime import datetime
 from pathlib import Path
+from typing import Dict, Optional, List
+
 import cv2
 import numpy as np
 from fastapi import File, UploadFile, HTTPException, APIRouter
-import base64
-from pydantic import BaseModel
-from typing import Dict, Optional, List
-from ultralytics import YOLO
 from paddleocr import PaddleOCR
-import time
-import json
-from datetime import datetime
-import re
+from pydantic import BaseModel
+from ultralytics import YOLO
+
 from app.middleware.logging import logger
 
 router = APIRouter()

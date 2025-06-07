@@ -6,8 +6,8 @@
 # modification, or distribution of this software is strictly prohibited unless
 # explicitly authorized by ITS.
 
-import os
 import logging
+import os
 
 # Define log directory
 log_dir = "C:\\captacao\\logs"

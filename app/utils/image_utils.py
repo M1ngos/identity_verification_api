@@ -15,8 +15,7 @@ from typing import Any
 import cv2
 import numpy as np
 from PIL import Image
-from cv2 import Mat
-from numpy import ndarray, dtype
+from numpy import ndarray
 
 from app.middleware.logging import logger
 

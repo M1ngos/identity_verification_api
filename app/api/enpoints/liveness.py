@@ -6,23 +6,27 @@
 # modification, or distribution of this software is strictly prohibited unless
 # explicitly authorized by ITS.
 
-from fastapi import FastAPI, HTTPException
+import logging
+
+from fastapi import HTTPException, APIRouter
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
-import logging
 
 from app.services import liveness_service
 from app.utils import image_utils
+from app.utils.convert_types import convert_numpy_types
 
 # Assuming your existing helper functions are importable
 # from yourproject import img_helper, lv_check, convert_numpy_types
 
-app = FastAPI()
+router = APIRouter()
+
 
 class LivenessRequest(BaseModel):
     image: str
 
-@app.post("/check_liveness")
+
+@router.post("/check_liveness")
 async def checking_liveness(request: LivenessRequest):
     """Endpoint to verify liveness from a Base64 image."""
     try:
@@ -76,4 +80,3 @@ async def checking_liveness(request: LivenessRequest):
     except Exception as e:
         logging.error(f"Error processing liveness check: {str(e)}", exc_info=True)
         raise HTTPException(status_code=500, detail="Error processing liveness check")
-

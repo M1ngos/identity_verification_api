@@ -11,6 +11,7 @@ LICENSE_TEXT = """\
 
 """
 
+
 def prepend_license(file_path):
     with open(file_path, 'r') as f:
         content = f.read()
@@ -19,6 +20,7 @@ def prepend_license(file_path):
     with open(file_path, 'w') as f:
         f.write(LICENSE_TEXT + content)
 
+
 def process_directory(directory):
     for root, _, files in os.walk(directory):
         for name in files:
@@ -26,6 +28,7 @@ def process_directory(directory):
                 full_path = os.path.join(root, name)
                 prepend_license(full_path)
 
+
 # Replace with the path to your code
 process_directory("C:\\Users\\Administrador\\PycharmProjects\\identity-verification_api\\app"
-)
+                  )

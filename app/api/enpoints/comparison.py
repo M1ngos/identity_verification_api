@@ -40,7 +40,7 @@ async def compare_images(data: ImageCompareRequest):
         logger.info("Starting comparison...")
 
         # Call DeepFace method to compare the images
-        result = deepface.verify_images(image1, image2)
+        result = deepface_service.verify_images(image1, image2)
 
         logger.info(f"Result: {result}")
         logger.info("Comparison completed!")

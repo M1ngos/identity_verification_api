@@ -6,10 +6,12 @@
 # modification, or distribution of this software is strictly prohibited unless
 # explicitly authorized by ITS.
 
+import traceback
 from typing import Any
 
-import tqdm, gdown, os
-import traceback
+import gdown
+import os
+import tqdm
 from PIL import Image
 from deepface import DeepFace
 
@@ -39,7 +41,7 @@ def verify_images(img1: Image.Image, img2: Image.Image) -> dict[str, str] | dict
 
         # Validate paths
         if not isinstance(img1_path, str) or not os.path.exists(img1_path) or \
-           not isinstance(img2_path, str) or not os.path.exists(img2_path):
+                not isinstance(img2_path, str) or not os.path.exists(img2_path):
             logger.error("One or both temporary image files were not created properly.")
             return {"error": "One or both temporary image files were not created!"}
 
