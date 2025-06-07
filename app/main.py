@@ -2,8 +2,8 @@ import logging
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from app.api.enpoints.id_scanner import router as id_scanner_router
-
+from app.api.enpoints.idscanner import router as id_scanner_router
+from app.api.enpoints.comparison import router as image_comparison_router
 
 # Initialize FastAPI app
 app = FastAPI(
@@ -30,6 +30,7 @@ async def health_check():
 
 # routes/endpoints
 app.include_router(id_scanner_router, prefix="/id")
+app.include_router(image_comparison_router, prefix="/image")
 
 # Events
 @app.on_event("startup")
