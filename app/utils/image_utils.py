@@ -15,7 +15,8 @@ from typing import Any
 import cv2
 import numpy as np
 from PIL import Image
-from numpy import ndarray
+from cv2 import Mat
+from numpy import ndarray, dtype
 
 from app.middleware.logging import logger
 
@@ -65,3 +66,19 @@ def save_temp_image(image) -> str | dict:
         error_trace = traceback.format_exc()
         logger.error("Failed to create temporary image file:\n" + error_trace)
         return {"error": str(e), "stack_trace": error_trace}
+
+
+def convert_image_to_mat(img: Image) -> ndarray | None | Any:
+    """Converts a PIL (Pillow) image to an OpenCV Mat (NumPy array)."""
+    if isinstance(img, np.ndarray):
+        img = Image.fromarray(img)
+        print(type(img))
+
+    if not isinstance(img, Image.Image):
+        return None
+
+    # Convert PIL to NumPy (OpenCV uses BGR, so convert RGB to BGR)
+    img_cv = np.array(img)
+    img_cv = cv2.cvtColor(img_cv, cv2.COLOR_RGB2BGR)
+
+    return img_cv

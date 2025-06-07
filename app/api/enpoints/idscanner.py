@@ -24,6 +24,7 @@ from app.middleware.logging import logger
 
 router = APIRouter()
 
+
 # Function to get the correct path based on environment (normal or packaged)
 def get_model_path(relative_path):
     import sys
@@ -34,10 +35,12 @@ def get_model_path(relative_path):
         base_path = os.path.dirname(__file__)  # Current directory
     return os.path.join(base_path, relative_path)
 
+
 # Paths to the local models
 det_model_dir = get_model_path('../../models/det/en_PP-OCRv3_det_infer')
 rec_model_dir = get_model_path('../../models/rec/latin_PP-OCRv3_rec_infer')
 cls_model_dir = get_model_path('../../models/cls/ch_ppocr_mobile_v2.0_cls_infer')
+
 
 # State tracking
 class ExtractionState:
@@ -58,14 +61,14 @@ class ExtractionState:
         # Also update if the field was detected a while ago (time decay)
         current_time = time.time()
         time_threshold = 5.0  # seconds
-        
+
         should_update = (
-            field not in self.extracted_data or 
-            confidence > self.extracted_data[field]['confidence'] or
-            (field in self.last_detected and 
-             current_time - self.last_detected[field] > time_threshold)
+                field not in self.extracted_data or
+                confidence > self.extracted_data[field]['confidence'] or
+                (field in self.last_detected and
+                 current_time - self.last_detected[field] > time_threshold)
         )
-        
+
         if should_update:
             self.extracted_data[field] = {
                 'value': value,
@@ -120,17 +123,20 @@ class ExtractionState:
 
         return filename
 
+
 # Global variables
 state = ExtractionState()
 REQUIRED_FIELDS = ["id_number", "name", "photo"]
 CONFIDENCE_THRESHOLD = 0.6
 PHOTO_SAVE_INTERVAL = 2  # seconds
 
+
 # Pydantic models for request and response
 class ExtractedField(BaseModel):
     value: str
     confidence: float
     timestamp: Optional[float] = None
+
 
 class ProcessFrameResponse(BaseModel):
     session_id: str
@@ -139,8 +145,10 @@ class ProcessFrameResponse(BaseModel):
     missing_fields: List[str]
     photo_base64: Optional[str] = None
 
+
 class ResetExtractionRequest(BaseModel):
     session_id: Optional[str] = None
+
 
 # Load models at startup
 @router.on_event("startup")
@@ -177,6 +185,7 @@ async def startup_event():
     except Exception as e:
         logger.error(f"Error loading YOLO model: {str(e)}")
         raise
+
 
 @router.post("/process-frame/", response_model=ProcessFrameResponse)
 async def process_frame(file: UploadFile = File(...)):
@@ -265,7 +274,7 @@ async def process_frame(file: UploadFile = File(...)):
                                 # Remove any leading 'N' if it was accidentally included
                                 if id_number.startswith('N'):
                                     id_number = id_number[1:]
-                                
+
                                 # If the last character is a digit, try to convert it to a letter
                                 if id_number[-1].isdigit():
                                     # Common OCR confusions for letters
@@ -286,7 +295,7 @@ async def process_frame(file: UploadFile = File(...)):
                                     # Remove any leading 'N' if it was accidentally included
                                     if clean_text.startswith('N'):
                                         clean_text = clean_text[1:]
-                                        
+
                                     # Ensure the last character is a letter
                                     if clean_text[-1].isdigit():
                                         # Common OCR confusions for letters
@@ -328,12 +337,13 @@ async def process_frame(file: UploadFile = File(...)):
         },
         "extraction_complete": state.extraction_complete,
         "missing_fields": [field for field in REQUIRED_FIELDS
-                          if field not in state.extracted_data or
-                          state.extracted_data[field]['confidence'] < CONFIDENCE_THRESHOLD],
+                           if field not in state.extracted_data or
+                           state.extracted_data[field]['confidence'] < CONFIDENCE_THRESHOLD],
         "photo_base64": getattr(state, 'photo_base64', None)  # Get photo_base64 from state
     }
 
     return ProcessFrameResponse(**response_data)
+
 
 @router.post("/reset-extraction/")
 async def reset_extraction(request: ResetExtractionRequest = None):
@@ -343,6 +353,7 @@ async def reset_extraction(request: ResetExtractionRequest = None):
         state.session_id = request.session_id
 
     return {"message": "Extraction state reset", "session_id": state.session_id}
+
 
 @router.get("/extraction-status/")
 async def get_extraction_status():

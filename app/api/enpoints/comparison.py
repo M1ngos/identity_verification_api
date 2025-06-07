@@ -6,31 +6,21 @@
 # modification, or distribution of this software is strictly prohibited unless
 # explicitly authorized by ITS.
 
-import os
-from pathlib import Path
-import cv2
-import numpy as np
-from fastapi import File, UploadFile, HTTPException, APIRouter, Query
-import base64
+from fastapi import HTTPException, APIRouter
 from pydantic import BaseModel
-from typing import Dict, Optional, List
-
 from starlette.responses import JSONResponse
-from ultralytics import YOLO
-from paddleocr import PaddleOCR
-import time
-import json
-from datetime import datetime
-import re
+
 from app.middleware.logging import logger
-from app.services import deepface
+from app.services import deepface_service
 from app.utils import image_utils
 
 router = APIRouter()
 
+
 class ImageCompareRequest(BaseModel):
     image1: str
     image2: str
+
 
 @router.post("/compare_images")
 async def compare_images(data: ImageCompareRequest):

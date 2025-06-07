@@ -27,5 +27,5 @@ def process_directory(directory):
                 prepend_license(full_path)
 
 # Replace with the path to your code
-process_directory("C:\\YOUR\\PATH\\TO-PROJECT\\identity-verification_api\\app"
+process_directory("C:\\Users\\Administrador\\PycharmProjects\\identity-verification_api\\app"
 )

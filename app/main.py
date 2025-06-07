@@ -39,6 +39,7 @@ async def health_check():
 # routes/endpoints
 app.include_router(id_scanner_router, prefix="/id")
 app.include_router(image_comparison_router, prefix="/image")
+# app.include_router(liveness_router, prefix="/image")
 
 # Events
 @app.on_event("startup")
