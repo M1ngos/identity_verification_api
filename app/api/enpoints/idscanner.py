@@ -18,9 +18,10 @@ from typing import Dict, Optional, List
 import cv2
 import numpy as np
 from fastapi import File, UploadFile, HTTPException, APIRouter
+from ultralytics import YOLO
 from paddleocr import PaddleOCR
 from pydantic import BaseModel
-from ultralytics import YOLO
+
 
 from app.middleware.logging import logger
 
