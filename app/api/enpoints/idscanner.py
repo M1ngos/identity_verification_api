@@ -8,8 +8,10 @@
 
 import base64
 import json
+import logging
 import os
 import re
+import sys
 import time
 from datetime import datetime
 from pathlib import Path
@@ -156,7 +158,8 @@ class ResetExtractionRequest(BaseModel):
 # Load models at startup
 @router.on_event("startup")
 async def startup_event():
-    global ocr, model
+    logging.info("Starting Liveness and IDScanner Server")
+    global ocr, model, vgg_model
 
     # Create directories
     os.makedirs("extraction_photos", exist_ok=True)
@@ -188,6 +191,15 @@ async def startup_event():
     except Exception as e:
         logger.error(f"Error loading YOLO model: {str(e)}")
         raise
+
+    vgg_weights_path = Path.home() / ".deepface" / "weights" / "vgg_face_weights.h5"
+
+    if not vgg_weights_path.is_file():
+        logger.error(f"VGG Face weights not found at expected path: {vgg_weights_path}")
+        logger.error("Please download and place the file there before starting the API.")
+        sys.exit(1)
+
+    logger.info(f"VGG Face weights found at: {vgg_weights_path}")
 
 
 @router.post("/process-frame/", response_model=ProcessFrameResponse)

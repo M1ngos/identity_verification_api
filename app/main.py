@@ -45,9 +45,9 @@ app.include_router(liveness_router, prefix="/image")
 
 
 # Events
-@app.on_event("startup")
-async def startup_event():
-    logging.info("Starting Liveness and IDScanner Server")
+# @app.on_event("startup")
+# async def startup_event():
+#     logging.info("Starting Liveness and IDScanner Server")
 
 
 @app.on_event("shutdown")
