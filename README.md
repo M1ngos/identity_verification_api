@@ -52,6 +52,10 @@ source venv/bin/activate  # On Windows use `venv\Scripts\activate`
 pip install -r requirements.txt
 ```
 
+Download necessary pre-trained-weight, ensure that it's stored under ~/.deepface/weights/ 
+```
+wget https://github.com/serengil/deepface_models/releases/download/v1.0/vgg_face_weights.h5
+```
 ## Usage
 
 1. **Run the FastAPI server**:
