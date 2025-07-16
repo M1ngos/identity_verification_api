@@ -8,10 +8,8 @@
 
 import base64
 import json
-import logging
 import os
 import re
-import sys
 import time
 from datetime import datetime
 from pathlib import Path
@@ -20,7 +18,7 @@ from typing import Dict, Optional, List
 import cv2
 import numpy as np
 from fastapi import File, UploadFile, HTTPException, APIRouter
-from ultralytics import YOLO
+from ultralytics import YOLO #Always import yolo first...dll linking issue
 from paddleocr import PaddleOCR
 from pydantic import BaseModel
 
@@ -155,11 +153,11 @@ class ResetExtractionRequest(BaseModel):
     session_id: Optional[str] = None
 
 
+# Events //TODO: Use clean design, avoid 2 startup functions!
 # Load models at startup
 @router.on_event("startup")
 async def startup_event():
-    logging.info("Starting Liveness and IDScanner Server")
-    global ocr, model, vgg_model
+    global ocr, model
 
     # Create directories
     os.makedirs("extraction_photos", exist_ok=True)
@@ -192,19 +190,10 @@ async def startup_event():
         logger.error(f"Error loading YOLO model: {str(e)}")
         raise
 
-    vgg_weights_path = Path.home() / ".deepface" / "weights" / "vgg_face_weights.h5"
-
-    if not vgg_weights_path.is_file():
-        logger.error(f"VGG Face weights not found at expected path: {vgg_weights_path}")
-        logger.error("Please download and place the file there before starting the API.")
-        sys.exit(1)
-
-    logger.info(f"VGG Face weights found at: {vgg_weights_path}")
-
 
 @router.post("/process-frame/", response_model=ProcessFrameResponse)
 async def process_frame(file: UploadFile = File(...)):
-    global state
+    global state, ocr, model
 
     # Read and decode the image
     contents = await file.read()
@@ -230,7 +219,7 @@ async def process_frame(file: UploadFile = File(...)):
             label = model.names[cls]  # Get label name
 
             # Confidence threshold
-            if conf < 0.2:
+            if conf < 0.3:
                 continue
 
             # Crop detected region
@@ -258,11 +247,6 @@ async def process_frame(file: UploadFile = File(...)):
 
             # For other fields, perform OCR
             elif label in ["id_number", "name"]:
-                # Check if the field has already been extracted with sufficient confidence
-                if label in state.extracted_data and state.extracted_data[label]['confidence'] >= CONFIDENCE_THRESHOLD:
-                    logger.info(f"Skipping OCR for {label} as it's already extracted with high confidence.")
-                    continue
-
                 # Convert to grayscale for better OCR
                 gray = cv2.cvtColor(cropped_region, cv2.COLOR_BGR2GRAY)
 
@@ -288,39 +272,53 @@ async def process_frame(file: UploadFile = File(...)):
                         # Special processing for ID number
                         if label == "id_number":
                             # Look for pattern Nº: followed by numbers and ending with a letter
-                            # Clean the text first to remove non-alphanumeric characters
-                            cleaned_best_text = re.sub(r'[^0-9A-Zº°:]', '', best_text.upper())
-
-                            # Look for pattern Nº: followed by 12 digits and an uppercase letter
-                            match = re.search(r'N[º°:]\s*:?\s*(\d{12}[A-Z])', cleaned_best_text, re.IGNORECASE)
+                            match = re.search(r'N[º°:]\s*:?\s*(\d+[A-Za-z])', best_text, re.IGNORECASE)
                             if match:
                                 id_number = match.group(1)
                                 # Remove any leading 'N' if it was accidentally included
                                 if id_number.startswith('N'):
                                     id_number = id_number[1:]
+
+                                # If the last character is a digit, try to convert it to a letter
+                                if id_number[-1].isdigit():
+                                    # Common OCR confusions for letters
+                                    digit_to_letter = {
+                                        '0': 'Q',
+                                        '1': 'I',
+                                        '8': 'B',
+                                        '5': 'S'
+                                    }
+                                    last_char = id_number[-1]
+                                    if last_char in digit_to_letter:
+                                        id_number = id_number[:-1] + digit_to_letter[last_char]
                                 best_text = id_number
                             else:
-                                # If no match found, try to extract 12 digits followed by an uppercase letter
-                                # from the cleaned and uppercased text without the 'Nº:' prefix
-                                strict_match = re.search(r'(\d{12}[A-Z])', cleaned_best_text)
-                                if strict_match:
-                                    best_text = strict_match.group(1)
-                                else:
-                                    # If still no strict match, set best_text to empty string
-                                    # to indicate that a valid ID number was not found.
-                                    best_text = ""
+                                # If no match found, try to extract numbers followed by a letter
+                                clean_text = re.sub(r'[^0-9A-Z]', '', best_text.upper())
+                                if clean_text:
+                                    # Remove any leading 'N' if it was accidentally included
+                                    if clean_text.startswith('N'):
+                                        clean_text = clean_text[1:]
+
+                                    # Ensure the last character is a letter
+                                    if clean_text[-1].isdigit():
+                                        # Common OCR confusions for letters
+                                        digit_to_letter = {
+                                            '0': 'O',
+                                            '1': 'I',
+                                            '8': 'B',
+                                            '5': 'S'
+                                        }
+                                        last_char = clean_text[-1]
+                                        if last_char in digit_to_letter:
+                                            clean_text = clean_text[:-1] + digit_to_letter[last_char]
+                                best_text = clean_text
 
                             # Log the ID number processing
                             logger.info(f"Processed ID number: {best_text}")
 
-                        elif label == "name":
-                            # Remove common prefixes like "Nome", "Name", "Nome / Name:"
-                            best_text = re.sub(r'^(NOME|NAME|NOME / NAME):?\s*', '', best_text, flags=re.IGNORECASE).strip()
-                            logger.info(f"Processed Name: {best_text}")
-
-                        # Update state only if best_text is not empty
-                        if best_text:
-                            state.update_field(label, best_text, combined_conf)
+                        # Update state
+                        state.update_field(label, best_text, combined_conf)
                         logger.info(f"Detected {label}: {best_text} (conf: {combined_conf:.2f})")
 
     # Check if extraction is complete

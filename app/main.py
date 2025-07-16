@@ -12,6 +12,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.api.enpoints.idscanner import router as id_scanner_router
 from app.api.enpoints.comparison import router as image_comparison_router
 from app.api.enpoints.liveness import router as liveness_router
+from app.middleware.logging import logger
+from app.utils.model_util import ensure_vggface_model
 
 # Initialize FastAPI app
 app = FastAPI(
@@ -44,12 +46,17 @@ app.include_router(image_comparison_router, prefix="/image")
 app.include_router(liveness_router, prefix="/image")
 
 
-# Events
-# @app.on_event("startup")
-# async def startup_event():
-#     logging.info("Starting Liveness and IDScanner Server")
+# Events //TODO: Use clean design, avoid 2 startup functions!
+@app.on_event("startup")
+async def startup_event():
+    logger.info("Starting Liveness and IDScanner Server")
+    try:
+        ensure_vggface_model()
+        logging.info("✅ VGGFace model is available.")
+    except Exception as e:
+        logging.error(f"❌ Failed to ensure VGGFace model: {e}")
 
 
 @app.on_event("shutdown")
 async def shutdown_event():
-    logging.info("Shutting Down Liveness and IDScanner Server")
+    logger.info("Shutting Down Liveness and IDScanner Server")

@@ -81,6 +81,15 @@ Open your browser to [http://localhost:8000/docs](http://localhost:8000/docs) fo
 
 For detailed configuration options, please check the `.env` file or environment variables documentation.
 
+
+## 🎯 Notes for EXE (PyInstaller):
+When building your EXE:
+
+Use the --add-data flag to include vgg_face_weights.h5.
+```bash
+pyinstaller main.py --add-data "app/models/vgg_face_weights.h5;app/models"
+```
+
 ## License
 
 Copyright (c) 2025 ITS All rights reserved.

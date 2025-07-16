@@ -8,7 +8,8 @@
 
 import os
 from datetime import datetime
-
+import shutil
+import sys
 
 def get_time():
     return (str(datetime.now())[:-10]).replace(' ', '-').replace(':', '-')
@@ -40,3 +41,27 @@ def parse_model_name(model_name):
 def make_if_not_exist(folder_path):
     if not os.path.exists(folder_path):
         os.makedirs(folder_path)
+
+
+def ensure_vggface_model():
+    """
+    Copy VGGFace weights to DeepFace expected path if not already there.
+    """
+    # Determine the source path of your local model
+    if getattr(sys, 'frozen', False):  # if compiled with PyInstaller
+        base_dir = sys._MEIPASS
+    else:
+        base_dir = os.path.dirname(os.path.abspath(__file__))
+
+    src_model_path = os.path.abspath(os.path.join(base_dir, "..", "models", "face", "verify", "weights", "vgg_face_weights.h5"))
+    target_dir = os.path.join(os.path.expanduser("~"), ".deepface", "weights")
+    target_model_path = os.path.join(target_dir, "vgg_face_weights.h5")
+
+    # Only copy if missing
+    if not os.path.exists(target_model_path):
+        os.makedirs(target_dir, exist_ok=True)
+        shutil.copyfile(src_model_path, target_model_path)
+
+
+
+

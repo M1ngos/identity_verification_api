@@ -6,15 +6,12 @@
 # modification, or distribution of this software is strictly prohibited unless
 # explicitly authorized by ITS.
 
-
-import math
-import os
-
-import cv2
-import numpy as np
 import torch
 import torch.nn.functional as F
-
+import math
+import os
+import cv2
+import numpy as np
 from app.core.io import transform as trans
 from app.models.lib.MiniFASNet import MiniFASNetV1, MiniFASNetV2, MiniFASNetV1SE, MiniFASNetV2SE
 from app.utils.model_util import get_kernel, parse_model_name
